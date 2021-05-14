@@ -224,4 +224,157 @@ def KSSimulatedAnnealingExecute(initial_state,initial,ks_packages):
     print("La solución es:")
     for p in ks_solution.packages:
         print(p)
+        
+import numpy as np
+import random
+
+class N_Damas:
+    def __init__(self,parents=None , n=4):
+        if n<4:
+            raise ValueError("El valor de n debe ser mayor o igual a 4")
+        elif  type(n)!=np.int:
+            raise ValueError("El valor de n debe ser un entero positivo")
+        self.the_board=np.array([[0]*n]*n)
+        self.n=n
+        if (parents is not None) and (len(parents)<2):
+            raise ValueError("Deben ser mínimo dos cromosomas padres")
+        if parents is None:
+            parent_1=random_parent(n)
+            parent_2=random_parent(n)
+            #(parent_1==parent_2).all()
+            parents=[parent_1,parent_2]
+        self.parents=parents
+    
+    def copy(self):        
+        return N_Damas(self.parents,self.n)
+        
+        
+def random_parent(n=4):
+    parent=np.array([[0]*n]*n)
+    row=list(range(n))
+    col=list(range(n))
+    for i in range(n):
+        random_row=random.choice(row)
+        random_col=random.choice(col)
+        parent[random_row][random_col]=1
+        row.remove(random_row)
+        col.remove(random_col)
+    return parent
+
+def buscar_casillas(board):
+    l_casillas=[]
+    for i in range(len(board)):
+        for j in range(len(board)):
+            if board[i][j]==1:
+                l_casillas.append((i,j))
+    return l_casillas
+
+def num_attacks(board):
+    n=len(board)
+    board_copy=board.copy()
+    attacks=0
+    while len(buscar_casillas(board_copy))!=0:
+        l_casillas=buscar_casillas(board_copy)
+        row=l_casillas[0][0]
+        col=l_casillas[0][1]       
+        if board_copy[row][col]!=1:
+            print(f"ERROR en las posición {row,col}")
+            print_position(board_copy)
+            return attacks
+        board_copy[row][col]=0
+
+        # Suma los ataques si hay damas en columnas para la misma fila
+        for i in range(n): 
+            if board_copy[row][i] == 1: 
+                attacks+=1
+        # Suma los ataques si hay damas en filas para la misma columna     
+        for i in range(n): 
+            if board_copy[i][col] == 1: 
+                attacks+=1
+        # suma los ataques si hay damas en las diagonales
+        for i in range(n):
+            if (row+i) in range(n):
+                if ((col+i) in range(n)) and (board_copy[row+i][col+i] == 1):
+                    attacks+=1
+                if ((col-i) in range(n)) and (board_copy[row+i][col-i] == 1):
+                    attacks+=1
+            if ((col+i) in range(n)) and ((row-i) in range(n)) and (board_copy[row-i][col+i] == 1):
+                attacks+=1
+            if ((col-i) in range(n)) and ((row-i) in range(n)) and (board_copy[row-i][col-i] == 1):
+                attacks+=1
+    return attacks
+
+# Escribe la solución en pantalla
+def print_position(board): 
+    n=len(board)
+    for i in range(n): 
+        for j in range(n): 
+            if j==0:
+                print ("\t",board[i][j], end = " ") 
+            else:
+                print (board[i][j], end = " ") 
+        print()    
+        
+def hijos(parent_1,parent_2,division):
+    n=len(parent_1)
+    hijo_1=parent_1.copy()
+    hijo_2=parent_2.copy()
+    for row in range(n):
+        for col in range(n):
+            if col>division:
+                hijo_2[row][col]=parent_1[row][col]
+                hijo_1[row][col]=parent_2[row][col]               
+    return [hijo_1,hijo_2]
+
+def mutar_hijo(hijo_inicial):
+    hijo=hijo_inicial.copy()
+    n=len(hijo)
+    valor=random.choice(range(n))
+    col_modif=random.choice(range(n))
+    for row in range(n):
+        hijo[row][col_modif]=0
+    hijo[valor][col_modif]=1
+    #print(f"Fila: {valor}, columna: {col_modif}")
+    return hijo
+
+def solve_genetic(N_Damas,division=1):
+    n=N_Damas.n
+    n_parent=1
+    generacion=1
+    print(f"Generación: {generacion}\n")
+    for parent in N_Damas.parents:
+        if num_attacks(parent)==0:
+            print("La solución es:")
+            print(f"********Padre {n_parent}:")
+            print_position(parent)
+            return
+        else:
+            print(f"Padre {n_parent}:")
+            print_position(parent)
+        n_parent+=1  
+    control=True  
+    N_Damas_copy=N_Damas.copy()
+    while control:
+        Hijos=hijos(N_Damas_copy.parents[0],N_Damas_copy.parents[1],division)
+        mutacion_Hijos=[]
+        generacion+=1
+        n_hijo=1
+        print(f"Generación: {generacion}\n")
+        for hijo in Hijos:
+            if num_attacks(hijo)==0:
+                print("La solución es:")
+                print(f"********Hijo {n_hijo}:")
+                print_position(hijo)
+                control=False
+                return
+            else:
+                print(f"Hijo {n_hijo}:")
+                print_position(hijo)
+                m_hijo=mutar_hijo(hijo)
+                print(f"\tHijo mutado:")
+                print_position(m_hijo)
+                mutacion_Hijos.append(m_hijo)                
+            n_hijo+=1
+        
+        N_Damas_copy.parents=mutacion_Hijos   
     
