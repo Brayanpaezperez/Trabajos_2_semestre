@@ -40,7 +40,11 @@ from sklearn.model_selection import train_test_split,cross_val_score
 from sklearn import datasets
 from sklearn import metrics
 
-
+from sklearn.naive_bayes import GaussianNB
+from sklearn.metrics import plot_confusion_matrix
+from sklearn.metrics import confusion_matrix
+from sklearn.metrics import precision_score
+from sklearn.metrics import classification_report
 
 
 
@@ -124,7 +128,7 @@ def m_gauss(d_x,d_y,d_z):
     
 def k_nn(datax,datay,class_n):
     X_train, X_test, y_train, y_test = train_test_split(datax,
-                                                        datay, random_state=0)
+                                                        datay, test_size=0.2,random_state=100)
     print("Tamaño de X_train: {}\nTamaño de y_train: {}".format(X_train.shape, y_train.shape))
     print("Tamaño de X_test: {}\nTamaño de y_test: {}".format(X_test.shape, y_test.shape))
 
@@ -167,7 +171,7 @@ def tree_desc(datax,datay,class_n,class_n_2):
     feature_cols =class_n
     X = datax # Características
     y = datay # Variable objetivo
-    X_train, X_test, y_train, y_test = train_test_split(X, y, test_size=0.3, random_state=1) 
+    X_train, X_test, y_train, y_test = train_test_split(X, y,test_size=0.2,random_state=100) 
     print("Tamaño de X_train: {}\nTamaño de y_train: {}".format(X_train.shape, y_train.shape))
     print("Tamaño de X_test: {}\nTamaño de y_test: {}".format(X_test.shape, y_test.shape))
     dtree = DecisionTreeClassifier()
@@ -199,3 +203,72 @@ def tree_desc(datax,datay,class_n,class_n_2):
                    special_characters=True, feature_names = list(datax.columns),class_names=class_n_2)
     graph = pydotplus.graph_from_dot_data(dot_data.getvalue()) 
     return graph
+
+
+def N_B(datax,datay,class_n):
+    algoritmo = GaussianNB()
+    X_train, X_test, y_train, y_test = train_test_split(datax, datay, test_size=0.2,random_state=100) 
+    class_names=class_n
+    algoritmo.fit(X_train, y_train)
+    y_pred = algoritmo.predict(X_test)
+    disp = plot_confusion_matrix(algoritmo, X_test, y_test, display_labels=class_names, cmap=plt.cm.Blues, normalize=None)
+    disp.ax_.set_title("Matriz de confusión sin normalización")
+    plt.xticks(rotation=90)
+    disp = plot_confusion_matrix(algoritmo, X_test, y_test, display_labels=class_names, cmap=plt.cm.Blues, normalize='true')
+    disp.ax_.set_title("Matriz de confusión normalizada")
+    plt.xticks(rotation=90)
+    print(classification_report(y_test, y_pred,target_names=class_names))
+    
+
+def  svm_f(datax,datay,avera):
+
+
+    X_train, X_test, y_train, y_test = train_test_split(datax, datay, test_size=0.2,random_state=100) 
+
+    print("Tamaño de X_train: {}\nTamaño de y_train: {}".format(X_train.shape, y_train.shape))
+    print("Tamaño de X_test: {}\nTamaño de y_test: {}".format(X_test.shape, y_test.shape))
+
+    #Crear un nuevo clasificador SVM 
+    svm_class = svm.SVC(kernel='linear') # Linear Kernel
+
+    #Se entrena ("ajusta") el modelo, usando los patrones de entrenamiento
+    svm_class.fit(X_train, y_train)
+
+    #Se obtiene el conjunt de salidas obtenidas con el modelo ajustado, según el dataset de prueba
+    y_pred = svm_class.predict(X_test)
+
+    cv_scores = cross_val_score(svm_class, X_train, y_train, cv=5)
+
+    print (cv_scores);
+
+    print(np.average(cv_scores))
+
+    print("Accuracy:",metrics.accuracy_score(y_test, y_pred))
+
+    # Model Precision: what percentage of positive tuples are labeled as such?
+    print("Precision:",metrics.precision_score(y_test, y_pred,average=avera))
+
+    # Model Recall: what percentage of positive tuples are labelled as such?
+    print("Recall:",metrics.recall_score(y_test, y_pred,average=avera))
+    
+    
+def random_forest(datax,datay):
+    from numpy import mean
+    from numpy import std
+    from sklearn.datasets import make_classification
+    from sklearn.model_selection import cross_val_score
+    from sklearn.model_selection import RepeatedStratifiedKFold
+    from sklearn.ensemble import RandomForestClassifier
+    # define dataset
+    X =datax
+    y =datay
+    # define the model
+    model = RandomForestClassifier()
+    # evaluate the model
+    cv = RepeatedStratifiedKFold(n_splits=10, n_repeats=3, random_state=1)
+    n_scores = cross_val_score(model, X, y, scoring='accuracy', cv=cv, n_jobs=-1, error_score='raise')
+    # report performance
+    print('Accuracy: %.3f (%.3f)' % (mean(n_scores), std(n_scores)))
+ 
+    
+    
